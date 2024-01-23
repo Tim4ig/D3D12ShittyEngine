@@ -1,0 +1,25 @@
+
+struct INPUT {
+   float3 pos : POSITION;
+};
+
+struct OUTPUT {
+    float4 pos : SV_Position;
+};
+
+cbuffer ConstantBuffer1 : register(b0)
+{
+    float4x4 view;
+	float4x4 projection;
+};
+
+cbuffer ConstantBuffer2 : register(b1)
+{
+    float4x4 model;
+};
+
+OUTPUT main(INPUT input) {
+    OUTPUT output;
+    output.pos = mul(view,mul(model,(float4(input.pos,1))));
+    return output;
+}

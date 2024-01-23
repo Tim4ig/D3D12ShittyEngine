@@ -1,0 +1,33 @@
+
+struct PixelIn
+{
+    float4 fragPos : POSITION;
+    float3 normal : NORMAL;
+    float4 pos2 : POSITION1;
+};
+
+float4 main(PixelIn _in) : SV_Target
+{
+    
+    float3 ambientColor = float3(1, 1, 1);
+    float3 lightColor = float3(0.9, 0.7, 0.9);
+    
+    float ambientStrength = 0.3;
+    float3 ambient = ambientStrength * ambientColor;
+    
+    float3 lightPos = _in.pos2;
+    float3 norm = _in.normal;
+    float3 lightDir = normalize(lightPos - (float3) _in.fragPos);
+    float diff = max(dot(norm, lightDir), 0.0);
+    float3 diffuse = diff * lightColor;
+    
+    float specularStrength = 0.5;
+    float3 viewDir = normalize(_in.pos2 - _in.fragPos);
+    float3 reflectDir = reflect(-lightDir, norm);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 128);
+    float3 specular = specularStrength * spec * lightColor * 4;
+    
+    float3 result = (ambient + diffuse + specular) * float3(232.f / 255.f, 215.f / 255.f, 213.f / 255.f);
+    return float4(result, 1.0);
+    return float4(0, 0, 1, 1);
+}

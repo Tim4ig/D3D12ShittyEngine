@@ -1,0 +1,43 @@
+struct VertexIn
+{
+    float3 pos : POSITION;
+    float3 nor : NORMAL;
+};
+
+struct VertexOut
+{
+    float4 fragPos : POSITION;
+    float3 normal : NORMAL;
+    float4 pos2 : POSITION1;
+    float4 pos : SV_Position;
+};
+
+cbuffer cb1 : register(b0)
+{
+    float4x4 cbview;
+    float4x4 cbworld;
+    float4 cbpos;
+}
+
+cbuffer cb2 : register(b1)
+{
+    float4x4 cbmodel;
+}
+
+VertexOut main(VertexIn _in)
+{
+    VertexOut o;
+    o.fragPos = mul(cbmodel, float4(_in.pos, 1));
+   
+    o.pos = mul(mul(cbview, cbworld), o.fragPos);
+    o.pos2 = cbpos;
+    
+    float3x3 ModelNormal = (float3x3) cbmodel;
+    
+    o.normal = normalize(mul(ModelNormal, _in.nor));
+    
+    return o;
+}
+
+
+

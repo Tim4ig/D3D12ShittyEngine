@@ -1,0 +1,14 @@
+
+struct INPUT {
+
+};
+
+struct OUTPUT {
+    float4 color : SV_Target;
+};
+
+OUTPUT main(INPUT input) {
+    OUTPUT output;
+    output.color = float4(204.f/255, 222.f/255, 209.f/255,1);
+    return output;
+}
