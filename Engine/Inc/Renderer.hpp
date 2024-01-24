@@ -1,12 +1,11 @@
 
 #pragma once
 
-#include "MacroDef.hpp"
-
-#include <D3DX12/d3dx12.h>
 #include <dxgi1_6.h>
+#include <D3DX12/d3dx12.h>
 
 #include "Scene.hpp"
+#include "MacroDef.hpp"
 
 namespace engine {
 
@@ -19,43 +18,47 @@ namespace engine {
 
 	public:
 
-		static Renderer*	CreateRendererInstance(HWND hWnd);
-		static Renderer*	GetRendererInstance();
-		static void			DeleteRendererInstance();
+		static Renderer*			CreateRendererInstance(HWND hWnd)	noexcept(false);
+		static Renderer*			GetRendererInstance()				noexcept;
+		static void					DeleteRendererInstance() 			noexcept ;
 
-		void Begin();
-		void Clear();
-		void End();
+		void						Begin()								noexcept;
+		void						Clear()								noexcept;
+		void						End()								noexcept;
 
-		ID3D12Device5* GetDevice();
-
-		void DrawScene();
-		void Draw(RigidBody * pBody);
+		void						Draw(RigidBody* pBody)				noexcept;
+		void						DrawScene()							noexcept;
+		
+		ID3D12Device5*		GetDevice()									noexcept;
 
 		~Renderer() = default;
 
-	public:
+	private:
 
 		Renderer() = default;
 
-		void m_ResizeSceneHeap(engine::Scene* pScene);
+		void						m_ResizeSceneHeap(engine::Scene* pScene)noexcept(false);
+		void						m_RecreateRootSignature()				noexcept(false);
 
-		void m_InitD3D12(HWND hWnd);
-		void m_InitPipeLine(HWND hWnd);
-		void m_InitRes();
-		void m_Sync();
+		void						m_InitD3D12(HWND hWnd)					noexcept(false);
+		void						m_InitPipeLine(HWND hWnd)				noexcept(false);
+		void						m_Sync()								noexcept(false);
 
-		void m_UpdateCbuffer(engine::Scene *pScene);
+		void						m_UpdateCbuffer(engine::Scene *pScene)	noexcept(false);
 
-		const int						m_nBufferCount = 2;
-		UINT							m_nEffectCount = 0;
+		const int					m_nBufferCount = 2;
+		UINT						m_nEffectCount = 0;
+		D3D12_VIEWPORT				m_ViewPort;
+		D3D12_RECT					m_ScissorRect;
+
+	private:
 
 		/***********************************************************************/
 		ComPtr<IDXGIFactory6>				m_Factory;
 		ComPtr<IDXGIAdapter>				m_Adapter;
 
-		ComPtr<ID3D12Device5>				m_Device;
 		ComPtr<ID3D12Debug>					m_Debug;
+		ComPtr<ID3D12Device5>				m_Device;
 		ComPtr<ID3D12DebugDevice>			m_DebugDevice;
 		
 		ComPtr<IDXGISwapChain3>				m_SwapChain;
@@ -70,16 +73,10 @@ namespace engine {
 		ComPtr<ID3D12Fence>					m_Fence;
 		UINT64								m_FenceValue = 0;
 
-		//std::vector<ComPtr<ID3D12Resource>>	m_Res;
-
-		std::vector <Effect>				m_Effects;
+		std::vector <Effect>							m_Effects;
 		std::vector <ComPtr<ID3D12GraphicsCommandList>> m_Lists;
-		std::vector <ComPtr<ID3D12CommandAllocator>> m_Allocators;
-
+		std::vector <ComPtr<ID3D12CommandAllocator>>	m_Allocators;
 		/***********************************************************************/
-		D3D12_VIEWPORT					m_ViewPort;
-		D3D12_RECT						m_ScissorRect;
-
 
 	};
 

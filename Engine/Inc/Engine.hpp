@@ -12,6 +12,8 @@
 #pragma comment(lib, "SWindow.lib")
 
 #include "Libs/SWindow.hpp"
-#include "Renderer.hpp"
+
 #include "MacroDef.hpp"
+#include "Renderer.hpp"
+#include "RigidBody.hpp"
 #include "Scene.hpp"

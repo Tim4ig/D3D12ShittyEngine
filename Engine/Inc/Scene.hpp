@@ -2,18 +2,16 @@
 #pragma once
 
 #include <vector>
-#include "RigidBody.hpp"
+
 #include "MacroDef.hpp"
+#include "RigidBody.hpp"
 
 namespace engine {
 	
-
 	struct SceneShaderData {
-
 		glm::mat4x4 view;
 		glm::mat4x4 projection;
 		glm::vec4	pos;
-
 	};
 
 	class Scene {

@@ -4,8 +4,6 @@
 #include <D3DX12/d3dx12.h>
 #include "MacroDef.hpp"
 
-#include <glm/glm.hpp>
-
 namespace engine {
 
 	struct Vertex {
@@ -44,9 +42,8 @@ namespace engine {
 		UINT						m_nEffect = 0;
 
 		ComPtr<ID3D12Resource>		m_CBOBuffer;
-		D3D12_VERTEX_BUFFER_VIEW	m_View = { 0 };
-		D3D12_GPU_DESCRIPTOR_HANDLE	m_Handle = { 0 };
-		UINT						m_CBONum = 0;
+		D3D12_VERTEX_BUFFER_VIEW	m_View = {};
+		D3D12_GPU_DESCRIPTOR_HANDLE	m_Handle = {};
 
 		std::vector<std::pair<ComPtr<ID3D12Resource>, D3D12_VERTEX_BUFFER_VIEW>> m_VertexBuffers;
 

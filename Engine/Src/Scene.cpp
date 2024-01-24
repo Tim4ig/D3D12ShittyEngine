@@ -24,7 +24,7 @@ namespace engine {
 	{
 		if (GetObjectN(name)) return;
 		m_Obj.push_back(new RigidBody);
-		int index = m_Obj.size() - 1;
+		int index = static_cast<int>(m_Obj.size() - 1);
 		m_Obj[index]->m_Name = name;
 		m_Obj[index]->InitFromFile(pcwStr);
 	}
@@ -33,7 +33,7 @@ namespace engine {
 	{
 		if (GetObjectN(name)) return;
 		m_Obj.push_back(new RigidBody);
-		int index = m_Obj.size() - 1;
+		int index = static_cast<int>(m_Obj.size() - 1);
 		m_Obj[index]->m_Name = name;
 		m_Obj[index]->Init(pRawData, nVertexCount);
 	}
@@ -42,8 +42,6 @@ namespace engine {
 	{
 		m_Obj.erase(std::remove_if(m_Obj.begin(), m_Obj.end(), [&](RigidBody* e) {return e->GetName() == name; }));
 	}
-
-
 
 	RigidBody* Scene::GetObjectN(std::string name)
 	{
@@ -57,8 +55,6 @@ namespace engine {
 	{
 		return m_Obj;
 	}
-
-	
 
 	Scene::~Scene()
 	{

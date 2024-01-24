@@ -1,32 +1,23 @@
-
-#pragma once
-
+ 
 #include "RigidBody.hpp"
 
+#include "../../../OBJLoader/c/OBJFileLoader.hpp"
+#include "MacroDef.hpp"
 #include "Renderer.hpp"
 
-#include "../../../OBJLoader/c/OBJFileLoader.hpp"
-
-#include "glm/gtx/rotate_vector.hpp"
-#include "glm/gtx/quaternion.hpp"
-
-#include <iostream>
-
 namespace engine {
-
 
 	void CreateVertexData(Loader::Mesh& m, engine::Vertex** pData, UINT* nVertexCount);
 
 	void RigidBody::InitFromFile(PCWSTR pcwFileName) {
 
-
 		Loader::FileData data;
 		bool res = Loader::LoadObj(pcwFileName, &data);
 		if (!res) return;
 
-		UINT count = data.FileMeshes.size();
+		UINT count = static_cast<UINT>(data.FileMeshes.size());
 
-		for (int i = 0; i < count; ++i) {
+		for (UINT i = 0; i < count; ++i) {
 			engine::Vertex* pVertex = nullptr;
 			UINT			nCount = 0;
 			CreateVertexData(data.FileMeshes[i], &pVertex, &nCount);
@@ -55,6 +46,7 @@ namespace engine {
 		ID3D12Resource* pVertexBuffer = nullptr;
 		D3D12_VERTEX_BUFFER_VIEW VertexBufferView = {};
 
+		//Create vertex buffer
 		{
 			CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_UPLOAD);
 			CD3DX12_RESOURCE_DESC bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(countOfVertex * sizeof(Vertex));
@@ -74,20 +66,19 @@ namespace engine {
 		VertexBufferView.SizeInBytes = countOfVertex * sizeof(Vertex);
 		VertexBufferView.StrideInBytes = sizeof(Vertex);
 
-		pVertexBuffer->AddRef();
 		m_VertexBuffers.push_back(std::make_pair(pVertexBuffer, VertexBufferView));
 		pVertexBuffer->Release();
 
+		//Create cbo buffer
 		{
-
-			D3D12_HEAP_PROPERTIES heapProps;
+			D3D12_HEAP_PROPERTIES heapProps = {};
 			heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
 			heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
 			heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
 			heapProps.CreationNodeMask = 1;
 			heapProps.VisibleNodeMask = 1;
 
-			D3D12_RESOURCE_DESC cbResourceDesc;
+			D3D12_RESOURCE_DESC cbResourceDesc = {};
 			cbResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
 			cbResourceDesc.Alignment = 0;
 			cbResourceDesc.Width = (sizeof(engine::BodyShaderData) + 255) & ~255;
@@ -122,9 +113,7 @@ namespace engine {
 	}
 
 	void RigidBody::m_Update() {
-
 		glm::quat rotationQuaternion = glm::quat(m_ModelAngles);
-
 		m_LocalShaderData.model = glm::translate(m_ModelPos) * glm::mat4_cast(rotationQuaternion);
 	}
 
@@ -151,7 +140,7 @@ namespace engine {
 
 		int pos = 0;
 
-		for (int i = 0; i < (*nVertexCount); ++i) {
+		for (UINT i = 0; i < (*nVertexCount); ++i) {
 
 			int ax[] = {m.Indecies[i].points[0].x - 1,m.Indecies[i].points[0].z - 1};
 			int ay[] = {m.Indecies[i].points[1].x - 1,m.Indecies[i].points[1].z - 1};
@@ -173,6 +162,5 @@ namespace engine {
 		}
 			(*nVertexCount) *= 3;
 			return;
-
 	}
 }
