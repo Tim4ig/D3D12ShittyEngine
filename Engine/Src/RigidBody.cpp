@@ -11,6 +11,8 @@ namespace engine {
 
 	void RigidBody::InitFromFile(PCWSTR pcwFileName) {
 
+		if (m_bWasInit) return;
+
 		Loader::FileData data;
 		bool res = Loader::LoadObj(pcwFileName, &data);
 		if (!res) return;
@@ -31,7 +33,7 @@ namespace engine {
 	{
 
 		if (m_bWasInit) return;
-		m_bWasInit = 0;
+		
 
 		HRESULT hr = S_OK;
 
@@ -60,14 +62,12 @@ namespace engine {
 			pVertexBuffer->Unmap(0, nullptr);
 		}
 
-		srel(pDev);
-
 		VertexBufferView.BufferLocation = pVertexBuffer->GetGPUVirtualAddress();
 		VertexBufferView.SizeInBytes = countOfVertex * sizeof(Vertex);
 		VertexBufferView.StrideInBytes = sizeof(Vertex);
 
 		m_VertexBuffers.push_back(std::make_pair(pVertexBuffer, VertexBufferView));
-		pVertexBuffer->Release();
+		int a = pVertexBuffer->Release();
 
 		//Create cbo buffer
 		{
@@ -130,6 +130,12 @@ namespace engine {
 	RigidBody::~RigidBody()
 	{
 		delete m_pRawData;
+		m_CBOBuffer.Reset();
+		for (auto& e : m_VertexBuffers) {
+			int a = e.first.Reset();
+			a = 0;
+		}
+		
 	}
 
 	void CreateVertexData(Loader::Mesh& m, engine::Vertex** pData, UINT* nVertexCount) {

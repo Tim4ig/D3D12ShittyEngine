@@ -10,6 +10,8 @@
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
 
+#define perps glm::perspectiveFovLH<float>(45.f, m_ViewPort.Width, m_ViewPort.Height, 0.1f, 1000.f)
+
 namespace engine {
 
 	Renderer* g_pRendererInstance = nullptr;
@@ -41,11 +43,12 @@ namespace engine {
 		
 		//Prepare the buffer for drawing
 		auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
-			m_RTVs[m_nRTVIndex].Get(),
+			m_RTBs[m_nRTVIndex].Get(),
 			D3D12_RESOURCE_STATE_PRESENT,
 			D3D12_RESOURCE_STATE_RENDER_TARGET
 		);
 		CD3DX12_CPU_DESCRIPTOR_HANDLE rtvDesc(m_RTVHeap->GetCPUDescriptorHandleForHeapStart(), m_nRTVIndex, m_nRTVDescSize);
+		CD3DX12_CPU_DESCRIPTOR_HANDLE dsvDesc(m_DSVHeap->GetCPUDescriptorHandleForHeapStart());
 
 		//Setup command lists
 		for (UINT i = 0; i < m_nEffectCount; ++i)
@@ -55,7 +58,7 @@ namespace engine {
 			m_Lists[i]->ResourceBarrier(1, &barrier);
 			m_Lists[i]->RSSetViewports(1, &m_ViewPort);
 			m_Lists[i]->RSSetScissorRects(1, &m_ScissorRect);
-			m_Lists[i]->OMSetRenderTargets(1, &rtvDesc, FALSE, nullptr);
+			m_Lists[i]->OMSetRenderTargets(1, &rtvDesc, FALSE, &dsvDesc);
 			m_Lists[i]->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		}
 	}
@@ -64,6 +67,7 @@ namespace engine {
 	{
 		//Get current back-buffer
 		CD3DX12_CPU_DESCRIPTOR_HANDLE rtvDesc(m_RTVHeap->GetCPUDescriptorHandleForHeapStart(), m_nRTVIndex, m_nRTVDescSize);
+		CD3DX12_CPU_DESCRIPTOR_HANDLE dsvDesc(m_DSVHeap->GetCPUDescriptorHandleForHeapStart());
 
 		//Black color as default
 		int ClearColor = 0;
@@ -79,13 +83,14 @@ namespace engine {
 		float a = ((ClearColor >> 0) & 255) / 255.f;
 		float clr[] = { r,g,b,a };
 		m_Lists.at(0)->ClearRenderTargetView(rtvDesc, clr, 0, nullptr);
+		m_Lists.at(0)->ClearDepthStencilView(dsvDesc, D3D12_CLEAR_FLAG_DEPTH, 1.f, 0, 0, NULL);
 	}
 
 	void Renderer::End() noexcept
 	{
 		//Prepare the buffer for showing
 		auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
-			m_RTVs[m_nRTVIndex].Get(),
+			m_RTBs[m_nRTVIndex].Get(),
 			D3D12_RESOURCE_STATE_RENDER_TARGET,
 			D3D12_RESOURCE_STATE_PRESENT
 		);
@@ -200,7 +205,7 @@ namespace engine {
 				&heapProps, D3D12_HEAP_FLAG_NONE, &cbResourceDesc,
 				D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&pScene->m_RCBOBuffer)));
 
-			pScene->m_LocalShaderData.projection	= glm::perspectiveFovLH<float>(45.f, m_ViewPort.Width, m_ViewPort.Height, 0.1f, 1000.f);
+			pScene->m_LocalShaderData.projection	= perps;
 			pScene->m_LocalShaderData.view			= glm::mat4x4(1.f);
 			pScene->m_LocalShaderData.pos			= glm::vec4(0);
 		}
@@ -319,6 +324,7 @@ namespace engine {
 
 		HRESULT hr = S_OK;
 		D3D_FEATURE_LEVEL minimumLevel = D3D_FEATURE_LEVEL_12_0;
+		m_hTargetWindow = hWnd;
 
 		//Get client metrics
 		{
@@ -345,6 +351,9 @@ namespace engine {
 #ifdef _DEBUG
 			hr = D3D12GetDebugInterface(IID_PPV_ARGS(&m_Debug)) throw_if_err;
 			m_Debug->EnableDebugLayer();
+
+			hr = DXGIGetDebugInterface1(NULL, IID_PPV_ARGS(&m_DXGIDebug)) throw_if_err;
+			m_DXGIDebug->EnableLeakTrackingForThread();
 #endif // _DEBUG
 		}
 
@@ -369,7 +378,7 @@ namespace engine {
 
 			//Choose one
 			{
-				for (auto adapter : pEnumAdapters) {
+				for (auto & adapter : pEnumAdapters) {
 					HRESULT tempHR = D3D12CreateDevice(adapter, minimumLevel, IID_PPV_ARGS(&pTempDevice));
 					if(SUCCEEDED(tempHR)) {
 						D3D12_FEATURE_DATA_D3D12_OPTIONS5 options5 = {};
@@ -389,7 +398,7 @@ namespace engine {
 				pTempAdapter->QueryInterface(IID_PPV_ARGS(&m_Adapter));
 				pTempAdapter->Release();
 
-				for (auto adapter : pEnumAdapters) adapter->Release();
+				for (auto & adapter : pEnumAdapters) adapter->Release();
 			}
 
 		}
@@ -398,7 +407,7 @@ namespace engine {
 		{
 			hr = D3D12CreateDevice(m_Adapter.Get(), minimumLevel, IID_PPV_ARGS(&m_Device)) throw_if_err;
 #ifdef _DEBUG
-			//hr = m_Device->QueryInterface(IID_PPV_ARGS(&m_DebugDevice)) throw_if_err;
+			hr = m_Device->QueryInterface(IID_PPV_ARGS(&m_DebugDevice)) throw_if_err;
 #endif // _DEBUG
 		}
 
@@ -431,30 +440,11 @@ namespace engine {
 				IDXGISwapChain1* pTempSC = nullptr;
 				hr = m_Factory->CreateSwapChainForHwnd(m_Queue.Get(), hWnd, &ds, &fds, nullptr, &pTempSC) throw_if_err;
 				pTempSC->QueryInterface(IID_PPV_ARGS(&m_SwapChain));
+				pTempSC->Release();
 				
 			}
 
-			//Create rtv desc heap
-			{
-				D3D12_DESCRIPTOR_HEAP_DESC ds;
-				zmem(ds);
-				ds.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-				ds.NumDescriptors = m_nBufferCount;
-				hr = m_Device->CreateDescriptorHeap(&ds, IID_PPV_ARGS(&m_RTVHeap)) throw_if_err;
-				m_nRTVDescSize = m_Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-			}
-			//Create rtv`s
-			{
-				ID3D12Resource* pTempRes = nullptr;
-				CD3DX12_CPU_DESCRIPTOR_HANDLE descHandle(m_RTVHeap->GetCPUDescriptorHandleForHeapStart());
-				for (int i = 0; i < m_nBufferCount; ++i) {
-					hr = m_SwapChain->GetBuffer(i, IID_PPV_ARGS(&pTempRes)) throw_if_err;
-					m_Device->CreateRenderTargetView(pTempRes, nullptr, descHandle);
-					m_RTVs.push_back(pTempRes);
-					pTempRes->Release();
-					descHandle.Offset(m_nRTVDescSize);
-				}
-			}
+			m_InitSwapChainBuffers();
 
 		}
 
@@ -511,12 +501,19 @@ namespace engine {
 				pds.SampleMask = UINT_MAX;
 				pds.SampleDesc.Count = 1;
 				pds.SampleDesc.Quality = 0;
-				pds.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 				pds.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 				pds.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
-
+				pds.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 				pds.NumRenderTargets = 1;
 				pds.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+
+				D3D12_DEPTH_STENCIL_DESC depthDesc = {};
+				depthDesc.DepthEnable = TRUE;
+				depthDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+				depthDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+
+				pds.DepthStencilState = depthDesc;
+				pds.DSVFormat = DXGI_FORMAT_D32_FLOAT;
 
 				hr = m_Device->CreateGraphicsPipelineState(&pds, IID_PPV_ARGS(&(m_Effects.at(index).m_PipelineState))) throw_if_err;
 
@@ -544,6 +541,84 @@ namespace engine {
 		}
 	}
 
+	void Renderer::m_InitSwapChainBuffers() noexcept(false)
+	{
+		HRESULT hr = S_OK;
+		//Create rtv desc heap
+		{
+			D3D12_DESCRIPTOR_HEAP_DESC ds;
+			zmem(ds);
+			ds.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+			ds.NumDescriptors = m_nBufferCount;
+			hr = m_Device->CreateDescriptorHeap(&ds, IID_PPV_ARGS(&m_RTVHeap)) throw_if_err;
+			m_nRTVDescSize = m_Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+		}
+		//Create rtv`s
+		{
+			
+			CD3DX12_CPU_DESCRIPTOR_HANDLE descHandle(m_RTVHeap->GetCPUDescriptorHandleForHeapStart());
+			for (int i = 0; i < m_nBufferCount; ++i) {
+				ID3D12Resource* pTempRes = nullptr;
+				hr = m_SwapChain->GetBuffer(i, IID_PPV_ARGS(&pTempRes)) throw_if_err;
+				m_Device->CreateRenderTargetView(pTempRes, nullptr, descHandle);
+				m_RTBs.push_back(pTempRes);
+				pTempRes->Release();
+				descHandle.Offset(m_nRTVDescSize);
+			}
+		}
+
+		//Create dsv
+		{
+			//Heap
+			{
+				D3D12_DESCRIPTOR_HEAP_DESC ds = {};
+				ds.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+				ds.NumDescriptors = 1;
+
+				hr = m_Device->CreateDescriptorHeap(&ds, IID_PPV_ARGS(&m_DSVHeap)) throw_if_err;
+			}
+			//Buffer
+			{
+				D3D12_RESOURCE_DESC depthStencilDesc = {};
+				depthStencilDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+				depthStencilDesc.Alignment = 0;
+				depthStencilDesc.Width =	static_cast<UINT64>(m_ViewPort.Width );
+				depthStencilDesc.Height =	static_cast<UINT64>(m_ViewPort.Height);
+				depthStencilDesc.DepthOrArraySize = 1;
+				depthStencilDesc.MipLevels = 1;
+				depthStencilDesc.Format = DXGI_FORMAT_D32_FLOAT;
+				depthStencilDesc.SampleDesc.Count = 1;
+				depthStencilDesc.SampleDesc.Quality = 0;
+				depthStencilDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+				depthStencilDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+
+				D3D12_CLEAR_VALUE clearValue = {};
+				clearValue.Format = DXGI_FORMAT_D32_FLOAT;
+				clearValue.DepthStencil.Depth = 1.0f;
+				clearValue.DepthStencil.Stencil = 0;
+
+				auto properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+
+				hr = m_Device->CreateCommittedResource(
+					&properties,
+					D3D12_HEAP_FLAG_NONE,
+					&depthStencilDesc,
+					D3D12_RESOURCE_STATE_COMMON,
+					&clearValue,
+					IID_PPV_ARGS(&m_DSB)
+				) throw_if_err;
+			}
+
+			D3D12_DEPTH_STENCIL_VIEW_DESC dsViewDesk = {};
+
+			dsViewDesk.Format = DXGI_FORMAT_D32_FLOAT;
+			dsViewDesk.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+
+			D3D12_CPU_DESCRIPTOR_HANDLE heapHandleDsv = m_DSVHeap->GetCPUDescriptorHandleForHeapStart();
+			m_Device->CreateDepthStencilView(m_DSB.Get(), &dsViewDesk, heapHandleDsv);
+		}
+	}
+
 	void Renderer::m_Sync() noexcept(false)
 	{
 		HRESULT hr = S_OK;
@@ -558,6 +633,51 @@ namespace engine {
 		}
 
 		m_nRTVIndex = m_SwapChain->GetCurrentBackBufferIndex();
+	}
+
+	void Renderer::Resize() noexcept(false)
+	{
+		HRESULT hr = S_OK;
+		//Get new client metrics
+		{
+			RECT clientRect;
+			GetClientRect(m_hTargetWindow, &clientRect);
+
+			if (clientRect.right - clientRect.left < 10 || clientRect.bottom - clientRect.top < 10) return;
+
+			zmem(m_ViewPort);
+			m_ViewPort.MaxDepth = 1.f;
+			m_ViewPort.Width = static_cast<FLOAT>(clientRect.right - clientRect.left);
+			m_ViewPort.Height = static_cast<FLOAT>(clientRect.bottom - clientRect.top);
+
+			zmem(m_ScissorRect);
+			m_ScissorRect.right = static_cast<LONG>(m_ViewPort.Width);
+			m_ScissorRect.bottom = static_cast<LONG>(m_ViewPort.Height);
+
+			
+		}
+		//Release old buffers
+		{	
+			m_RTBs.clear();
+			m_DSB.Reset();
+			m_RTVHeap.Reset();
+			m_DSVHeap.Reset();
+		}
+		//Resize swapChainBuffers
+		hr = m_SwapChain->ResizeBuffers(
+			m_nBufferCount,
+			static_cast<UINT>(m_ViewPort.Width ),
+			static_cast<UINT>(m_ViewPort.Height) ,
+			DXGI_FORMAT_R8G8B8A8_UNORM,
+			NULL
+		) throw_if_err;
+		//Create new buffers
+		m_InitSwapChainBuffers();
+		m_Sync();
+		if (GetActiveScene()) {
+			GetActiveScene()->m_LocalShaderData.projection = perps;
+			GetActiveScene()->m_NeedConstantUpdate = 1;
+		}
 	}
 
 	void Renderer::m_UpdateCbuffer(engine::Scene* pScene) noexcept(false)
@@ -580,7 +700,7 @@ namespace engine {
 			pScene->m_NeedHeapUpdate = 0;
 		}
 
-		for (auto e : pScene->m_Obj) {
+		for (auto & e : pScene->m_Obj) {
 			if (e->m_NeedUpdate) {
 				e->m_Update();
 				update(e->m_CBOBuffer.Get(), &e->m_LocalShaderData, sizeof(engine::BodyShaderData));

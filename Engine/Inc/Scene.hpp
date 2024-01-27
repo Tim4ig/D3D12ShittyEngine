@@ -18,6 +18,8 @@ namespace engine {
 
 	public:
 
+		Scene();
+
 		void SetAsActive();
 
 		void CreateObjectFromFile(std::string name, PCWSTR pcwStr);
@@ -33,13 +35,15 @@ namespace engine {
 
 	private:
 
-		SceneShaderData					m_LocalShaderData;
+		SceneShaderData					m_LocalShaderData = {};
 
-		D3D12_GPU_DESCRIPTOR_HANDLE		m_RCBOHandle;
+		D3D12_GPU_DESCRIPTOR_HANDLE		m_RCBOHandle = {};
 		ComPtr<ID3D12DescriptorHeap>	m_ConstantHeap			= nullptr;
 		bool							m_NeedHeapUpdate		= true;
 		bool							m_NeedConstantUpdate	= true;
 		ComPtr<ID3D12Resource>			m_RCBOBuffer			= nullptr;
+
+		RigidBody						m_MistakeBody;
 
 		int m_ClearColor = 0x000000ff;
 
@@ -50,6 +54,7 @@ namespace engine {
 
 	};
 
-	Scene* GetActiveScene();
+	Scene*	GetActiveScene();
+	void	SetNullActiveScene();
 
 }

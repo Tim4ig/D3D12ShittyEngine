@@ -10,6 +10,11 @@ namespace engine {
 		return g_pTargetScene;
 	}
 
+	void SetNullActiveScene()
+	{
+		g_pTargetScene = nullptr;
+	}
+
 	void Scene::SetAsActive()
 	{
 		g_pTargetScene = this;
@@ -22,7 +27,7 @@ namespace engine {
 
 	void Scene::CreateObjectFromFile(std::string name, PCWSTR pcwStr)
 	{
-		if (GetObjectN(name)) return;
+		if (GetObjectN(name) != &m_MistakeBody) return;
 		m_Obj.push_back(new RigidBody);
 		int index = static_cast<int>(m_Obj.size() - 1);
 		m_Obj[index]->m_Name = name;
@@ -31,7 +36,7 @@ namespace engine {
 
 	void Scene::CreateObject(std::string name, engine::Vertex* pRawData, int nVertexCount)
 	{
-		if (GetObjectN(name)) return;
+		if (GetObjectN(name) != &m_MistakeBody) return;
 		m_Obj.push_back(new RigidBody);
 		int index = static_cast<int>(m_Obj.size() - 1);
 		m_Obj[index]->m_Name = name;
@@ -48,7 +53,7 @@ namespace engine {
 		auto it = std::find_if(m_Obj.begin(), m_Obj.end(),
 			[&](RigidBody* obj) { return obj->GetName() == name; });
 
-		return ((it != m_Obj.end()) ? *it._Ptr : nullptr);
+		return ((it != m_Obj.end()) ? *it._Ptr : &m_MistakeBody);
 	}
 
 	std::vector<engine::RigidBody*>& Scene::GetObjects()
@@ -56,9 +61,17 @@ namespace engine {
 		return m_Obj;
 	}
 
+	Scene::Scene()
+	{
+		m_MistakeBody.m_bWasInit = 1;
+	}
+
 	Scene::~Scene()
 	{
-		for (auto e : m_Obj) delete e;
+		for (auto e : m_Obj) {
+			delete e;
+		}
+		if (GetActiveScene() == this) SetNullActiveScene();
 	}
 
 }

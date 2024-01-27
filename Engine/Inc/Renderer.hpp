@@ -3,6 +3,7 @@
 
 #include <dxgi1_6.h>
 #include <D3DX12/d3dx12.h>
+#include <dxgidebug.h>
 
 #include "Scene.hpp"
 #include "MacroDef.hpp"
@@ -26,6 +27,8 @@ namespace engine {
 		void						Clear()								noexcept;
 		void						End()								noexcept;
 
+		void						Resize()							noexcept(false);
+
 		void						Draw(RigidBody* pBody)				noexcept;
 		void						DrawScene()							noexcept;
 		
@@ -42,7 +45,9 @@ namespace engine {
 
 		void						m_InitD3D12(HWND hWnd)					noexcept(false);
 		void						m_InitPipeLine(HWND hWnd)				noexcept(false);
+		void						m_InitSwapChainBuffers()				noexcept(false);
 		void						m_Sync()								noexcept(false);
+
 
 		void						m_UpdateCbuffer(engine::Scene *pScene)	noexcept(false);
 
@@ -51,19 +56,25 @@ namespace engine {
 		D3D12_VIEWPORT				m_ViewPort;
 		D3D12_RECT					m_ScissorRect;
 
-	private:
+		HWND						m_hTargetWindow = NULL;
+
+	public:
 
 		/***********************************************************************/
 		ComPtr<IDXGIFactory6>				m_Factory;
 		ComPtr<IDXGIAdapter>				m_Adapter;
-
+		
 		ComPtr<ID3D12Debug>					m_Debug;
-		ComPtr<ID3D12Device5>				m_Device;
+		ComPtr<IDXGIDebug1>				m_DXGIDebug;
 		ComPtr<ID3D12DebugDevice>			m_DebugDevice;
+
+		ComPtr<ID3D12Device5>				m_Device;
 		
 		ComPtr<IDXGISwapChain3>				m_SwapChain;
 		ComPtr<ID3D12DescriptorHeap>		m_RTVHeap;
-		std::vector<ComPtr<ID3D12Resource>> m_RTVs;
+		ComPtr<ID3D12DescriptorHeap>		m_DSVHeap;
+		std::vector<ComPtr<ID3D12Resource>> m_RTBs;
+		ComPtr<ID3D12Resource>				m_DSB;
 		UINT								m_nRTVDescSize = 0;
 		UINT								m_nRTVIndex = 0;
 
