@@ -14,7 +14,7 @@ int wWinMain(HINSTANCE, HINSTANCE, wchar_t*, int) {
 
 	engine::Scene* pSc = new engine::Scene;
 
-	pSc->CreateObjectFromFile("name", L"d/8.obj");
+	pSc->CreateObjectFromFile("name", L"d/1.obj");
 	pSc->GetObjectN("name")->SetPos(glm::vec3(0, 0, 3));
 	pSc->SetAsActive();
 

@@ -9,7 +9,8 @@
 #error This engine is for OS Windows only
 #endif // !_WIN32
 
-#pragma comment(lib, "SWindow.lib")
+#pragma comment(lib, "SWindowD.lib")
+#pragma comment(lib,"OBJLoaderD.lib")
 
 #include "Libs/SWindow.hpp"
 
@@ -17,3 +18,9 @@
 #include "Renderer.hpp"
 #include "RigidBody.hpp"
 #include "Scene.hpp"
+
+namespace engine {
+
+	
+
+}
