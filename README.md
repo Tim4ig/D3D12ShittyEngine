@@ -1,4 +1,4 @@
 
-Shitty "game engine" by Tim4ig.
+D3D12 C++ Windows only engine.
 
-Stas edition.
+The engine is under active development, developed for educational purposes by Tim4ig
