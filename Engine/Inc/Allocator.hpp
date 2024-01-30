@@ -10,8 +10,8 @@ namespace engine::mem {
 		virtual ~AllocatedResource() = default;
 	private:
 		uint32_t nSize = 0;
-		template<class T>
-		friend T* malloc(size_t count);
+		template<class U>
+		friend U* malloc(size_t count);
 		friend void free(AllocatedResource* ptr);
 		friend void freeall();
 	};

@@ -14,8 +14,7 @@ namespace engine {
 	{
 		auto iter = std::find_if(g_Res.begin(), g_Res.end(), [&](engine::mem::AllocatedResource* e) {return e == ptr; });
 		if (iter == g_Res.end()) return;
-		AllocatedResource* pRes = *iter;
-		(pRes->nSize == 1) ? delete pRes : delete[] pRes;
+		((*iter)->nSize == 1) ? delete (*iter) : delete[](*iter);
 		g_Res.erase(iter);
 	}
 
@@ -27,7 +26,8 @@ namespace engine {
 	template<class T>
 	T* mem::malloc(size_t count)
 	{
-		T* ptr = new T[count];
+		T* ptr = (count == 1) ? new T : new T[count];
+		reinterpret_cast<AllocatedResource*>(ptr)->nSize = count;
 		g_Res.push_back(ptr);
 		return ptr;
 	}
