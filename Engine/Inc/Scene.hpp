@@ -8,11 +8,10 @@
 #include "Camera.hpp"
 
 namespace engine {
-	
 	struct SceneShaderData {
 		glm::mat4x4 view;
 		glm::mat4x4 projection;
-		glm::vec4	pos;
+		glm::vec4    pos;
 	};
 
 	class Scene : public mem::AllocatedResource {
@@ -39,19 +38,19 @@ namespace engine {
 
 	private:
 
-		RigidBody*						AddObject(std::string name);
+		RigidBody* AddObject(std::string name);
 
-		Camera							m_Camera;
+		Camera                            m_Camera;
 
-		SceneShaderData					m_LocalShaderData = {};
+		SceneShaderData                    m_LocalShaderData = {};
 
-		D3D12_GPU_DESCRIPTOR_HANDLE		m_RCBOHandle = {};
-		ComPtr<ID3D12DescriptorHeap>	m_ConstantHeap			= nullptr;
-		bool							m_NeedHeapUpdate		= true;
-		bool							m_NeedConstantUpdate	= true;
-		ComPtr<ID3D12Resource>			m_RCBOBuffer			= nullptr;
+		D3D12_GPU_DESCRIPTOR_HANDLE        m_RCBOHandle = {};
+		ComPtr<ID3D12DescriptorHeap>    m_ConstantHeap = nullptr;
+		bool                            m_NeedHeapUpdate = true;
+		bool                            m_NeedConstantUpdate = true;
+		ComPtr<ID3D12Resource>            m_RCBOBuffer = nullptr;
 
-		RigidBody						m_MistakeBody;
+		RigidBody                        m_MistakeBody;
 
 		int m_ClearColor = 0x000000ff;
 
@@ -62,7 +61,6 @@ namespace engine {
 
 	};
 
-	Scene*	GetActiveScene();
-	void	SetNullActiveScene();
-
+	Scene* GetActiveScene();
+	void    SetNullActiveScene();
 }

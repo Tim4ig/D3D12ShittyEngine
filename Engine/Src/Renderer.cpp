@@ -1,8 +1,8 @@
 
 #include "Renderer.hpp"
 
-#include <vector>
 #include <functional>
+#include <vector>
 
 #include <d3dcompiler.h>
 
@@ -39,8 +39,8 @@ namespace engine {
 	void Renderer::Begin() noexcept
 	{
 		//Reset all command allocators
-		for(auto & allocator : m_Allocators) allocator->Reset();
-		
+		for (auto& allocator : m_Allocators) allocator->Reset();
+
 		//Prepare the buffer for drawing
 		auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
 			m_RTBs[m_nRTVIndex].Get(),
@@ -95,12 +95,12 @@ namespace engine {
 			D3D12_RESOURCE_STATE_PRESENT
 		);
 
-		for (auto & eff : m_Lists)
+		for (auto& eff : m_Lists)
 		{
 			eff->ResourceBarrier(1, &barrier);
 			eff->Close();
 		}
-	
+
 		ID3D12CommandList** ppLists = reinterpret_cast<ID3D12CommandList**>(m_Lists[0].GetAddressOf());
 
 		m_Queue->ExecuteCommandLists(static_cast<UINT>(m_Effects.size()), ppLists);
@@ -122,7 +122,7 @@ namespace engine {
 
 		//Update scene cbuffers
 		m_UpdateCbuffer(pScene);
-		
+
 		//Setup heaps
 		for (int i = 0; i < m_Effects.size(); ++i) {
 			ID3D12DescriptorHeap* pDescriptorHeaps[] = { pScene->m_ConstantHeap.Get() };
@@ -131,7 +131,7 @@ namespace engine {
 		}
 
 		//Draw all obj
-		for (auto & e : pScene->m_Obj) {
+		for (auto& e : pScene->m_Obj) {
 			this->Draw(e);
 		}
 	}
@@ -142,7 +142,7 @@ namespace engine {
 		UINT effect = pBody->m_nEffect;
 		UINT count = static_cast<UINT>(pBody->m_VertexBuffers.size());
 		if (effect < 0 || effect > m_nEffectCount) return;
-		
+
 		//Set cbuffer
 		m_Lists[effect]->SetGraphicsRootDescriptorTable(1, pBody->m_Handle);
 
@@ -230,19 +230,19 @@ namespace engine {
 
 			zmem(m_ViewPort);
 			m_ViewPort.MaxDepth = 1.f;
-			m_ViewPort.Width =  static_cast<FLOAT>(clientRect.right - clientRect.left);
+			m_ViewPort.Width = static_cast<FLOAT>(clientRect.right - clientRect.left);
 			m_ViewPort.Height = static_cast<FLOAT>(clientRect.bottom - clientRect.top);
 
 			zmem(m_ScissorRect);
-			m_ScissorRect.right =	static_cast<LONG>(m_ViewPort.Width	);
-			m_ScissorRect.bottom =	static_cast<LONG>(m_ViewPort.Height);
+			m_ScissorRect.right = static_cast<LONG>(m_ViewPort.Width);
+			m_ScissorRect.bottom = static_cast<LONG>(m_ViewPort.Height);
 		}
 
 		//Create DXGI factory
 		{
 			hr = CreateDXGIFactory(IID_PPV_ARGS(&m_Factory)) throw_if_err;
 		}
-		
+
 		//Create debug
 		{
 #ifdef _DEBUG
@@ -265,19 +265,19 @@ namespace engine {
 				for (int i = 0; ; ++i) {
 					if (m_Factory->EnumAdapterByGpuPreference(i, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&pTempAdapter))
 						== DXGI_ERROR_NOT_FOUND) break;
-						pTempAdapter->AddRef();
-						pEnumAdapters.push_back(pTempAdapter);
-						pTempAdapter->Release();
-						pTempAdapter = nullptr;
-					
+					pTempAdapter->AddRef();
+					pEnumAdapters.push_back(pTempAdapter);
+					pTempAdapter->Release();
+					pTempAdapter = nullptr;
+
 				}
 			}
 
 			//Choose one
 			{
-				for (auto & adapter : pEnumAdapters) {
+				for (auto& adapter : pEnumAdapters) {
 					HRESULT tempHR = D3D12CreateDevice(adapter, minimumLevel, IID_PPV_ARGS(&pTempDevice));
-					if(SUCCEEDED(tempHR)) {
+					if (SUCCEEDED(tempHR)) {
 						D3D12_FEATURE_DATA_D3D12_OPTIONS5 options5 = {};
 						pTempDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &options5, sizeof(options5));
 						if (options5.RaytracingTier != D3D12_RAYTRACING_TIER_NOT_SUPPORTED) {
@@ -295,7 +295,7 @@ namespace engine {
 				pTempAdapter->QueryInterface(IID_PPV_ARGS(&m_Adapter));
 				pTempAdapter->Release();
 
-				for (auto & adapter : pEnumAdapters) adapter->Release();
+				for (auto& adapter : pEnumAdapters) adapter->Release();
 			}
 
 		}
@@ -326,7 +326,7 @@ namespace engine {
 				ds.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 				ds.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 				ds.Height = static_cast<UINT>(m_ViewPort.Height);
-				ds.Width =	static_cast<UINT>(m_ViewPort.Width );
+				ds.Width = static_cast<UINT>(m_ViewPort.Width);
 				ds.SampleDesc.Count = 1;
 				ds.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
 
@@ -338,7 +338,7 @@ namespace engine {
 				hr = m_Factory->CreateSwapChainForHwnd(m_Queue.Get(), hWnd, &ds, &fds, nullptr, &pTempSC) throw_if_err;
 				pTempSC->QueryInterface(IID_PPV_ARGS(&m_SwapChain));
 				pTempSC->Release();
-				
+
 			}
 
 			m_InitSwapChainBuffers();
@@ -366,7 +366,7 @@ namespace engine {
 	void Renderer::m_InitPipeLine(HWND hWnd) noexcept(false)
 	{
 		HRESULT hr = S_OK;
-		
+
 		std::function<void(UINT, ID3DBlob*, ID3DBlob*, D3D12_INPUT_ELEMENT_DESC*)> CreateEffect;
 
 		//Predefined lambda
@@ -379,8 +379,8 @@ namespace engine {
 				m_Allocators.resize(m_nEffectCount + 1);
 				D3D12_INPUT_ELEMENT_DESC inputElementDesc[] =
 				{
-					{"POSITION",0,DXGI_FORMAT_R32G32B32_FLOAT,0,0,D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,0},
-					{"NORMAL",	0,DXGI_FORMAT_R32G32B32_FLOAT,0,12,D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,0}
+				 {"POSITION",0,DXGI_FORMAT_R32G32B32_FLOAT,0,0,D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,0},
+				 {"NORMAL",    0,DXGI_FORMAT_R32G32B32_FLOAT,0,12,D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,0}
 				};
 
 				m_RecreateRootSignature();
@@ -426,7 +426,7 @@ namespace engine {
 				}
 
 				m_nEffectCount++;
-			};
+				};
 		}
 
 		//Create effect 0(light)
@@ -513,7 +513,7 @@ namespace engine {
 		}
 		//Create rtv`s
 		{
-			
+
 			CD3DX12_CPU_DESCRIPTOR_HANDLE descHandle(m_RTVHeap->GetCPUDescriptorHandleForHeapStart());
 			for (int i = 0; i < m_nBufferCount; ++i) {
 				ID3D12Resource* pTempRes = nullptr;
@@ -540,8 +540,8 @@ namespace engine {
 				D3D12_RESOURCE_DESC depthStencilDesc = {};
 				depthStencilDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 				depthStencilDesc.Alignment = 0;
-				depthStencilDesc.Width =	static_cast<UINT64>(m_ViewPort.Width );
-				depthStencilDesc.Height =	static_cast<UINT64>(m_ViewPort.Height);
+				depthStencilDesc.Width = static_cast<UINT64>(m_ViewPort.Width);
+				depthStencilDesc.Height = static_cast<UINT64>(m_ViewPort.Height);
 				depthStencilDesc.DepthOrArraySize = 1;
 				depthStencilDesc.MipLevels = 1;
 				depthStencilDesc.Format = DXGI_FORMAT_D32_FLOAT;
@@ -682,7 +682,7 @@ namespace engine {
 
 	void Renderer::m_UpdateCbuffer(engine::Scene* pScene) noexcept(false)
 	{
-		auto update = [&](ID3D12Resource* pRes, void * data, UINT size) -> void {
+		auto update = [&](ID3D12Resource* pRes, void* data, UINT size) -> void {
 			D3D12_RANGE readRange = {};
 			readRange.Begin = 0;
 			readRange.End = 0;
@@ -693,14 +693,14 @@ namespace engine {
 				0, &readRange, reinterpret_cast<void**>(&pMapped)));
 			memcpy(pMapped, data, size);
 			pRes->Unmap(0, &readRange);
-		};
+			};
 
 		if (pScene->m_NeedHeapUpdate) {
 			m_ResizeSceneHeap(pScene);
 			pScene->m_NeedHeapUpdate = 0;
 		}
 
-		for (auto & e : pScene->m_Obj) {
+		for (auto& e : pScene->m_Obj) {
 			if (e->m_NeedUpdate) {
 				e->m_Update();
 				update(e->m_CBOBuffer.Get(), &e->m_LocalShaderData, sizeof(engine::BodyShaderData));
@@ -728,19 +728,21 @@ namespace engine {
 	std::pair<ID3DBlob*, ID3DBlob*> g_LoadShaders(LPCWSTR pcwFileName) {
 
 		HRESULT hr = S_OK;
-		ID3DBlob* pVS, *pPS, *pERR;
+		ID3DBlob* pVS, * pPS, * pERR;
 
 		//Load vertex
 		{
 			hr = D3DCompileFromFile((std::wstring(pcwFileName) + (L".evs")).c_str(), nullptr, nullptr, "main", "vs_5_0", NULL, NULL, &pVS, &pERR);
-			if (FAILED(hr) && hr != HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND)) { if(pERR->GetBufferSize() > 16) MessageBoxA(NULL, (char*)pERR->GetBufferPointer(), "D3DCompile Error", MB_OK); pVS = nullptr;
+			if (FAILED(hr) && hr != HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND)) {
+				if (pERR->GetBufferSize() > 16) MessageBoxA(NULL, (char*)pERR->GetBufferPointer(), "D3DCompile Error", MB_OK); pVS = nullptr;
 			}
 		}
 
 		//Load pixel
 		{
 			hr = D3DCompileFromFile((std::wstring(pcwFileName) + (L".eps")).c_str(), nullptr, nullptr, "main", "ps_5_0", NULL, NULL, &pPS, &pERR);
-			if (FAILED(hr) && hr != HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND)) { if (pERR->GetBufferSize() > 16) MessageBoxA(NULL, (char*)pERR->GetBufferPointer(), "D3DCompile Error", MB_OK); pPS = nullptr;
+			if (FAILED(hr) && hr != HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND)) {
+				if (pERR->GetBufferSize() > 16) MessageBoxA(NULL, (char*)pERR->GetBufferPointer(), "D3DCompile Error", MB_OK); pPS = nullptr;
 			}
 		}
 

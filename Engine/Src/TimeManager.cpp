@@ -2,7 +2,6 @@
 #include "TimeManager.hpp"
 
 namespace engine {
-
 	void TimeManager::Update()
 	{
 		auto now = std::chrono::high_resolution_clock::now();
@@ -19,5 +18,4 @@ namespace engine {
 	{
 		return 1000.f / static_cast<float>(GetDTms());
 	}
-
 }

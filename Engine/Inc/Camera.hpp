@@ -3,10 +3,8 @@
 
 #include "MacroDef.hpp"
 
-namespace engine  {
-
+namespace engine {
 	class Camera : public mem::AllocatedResource {
-
 	public:
 		void SetPos(glm::vec3 pos);
 		void SetGaze(glm::vec3 target);
@@ -17,5 +15,4 @@ namespace engine  {
 		glm::mat4 m_View;
 		friend class Renderer;
 	};
-
 }

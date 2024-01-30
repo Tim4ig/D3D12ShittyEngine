@@ -1,15 +1,15 @@
 
 #include "Allocator.hpp"
 
-#include "Scene.hpp"
 #include "Camera.hpp"
-#include "RigidBody.hpp"
 #include "PlayerController.hpp"
+#include "RigidBody.hpp"
+#include "Scene.hpp"
 
 namespace engine {
 
 	std::vector<mem::AllocatedResource*> g_Res;
-	
+
 	void mem::free(AllocatedResource* ptr)
 	{
 		auto iter = std::find_if(g_Res.begin(), g_Res.end(), [&](engine::mem::AllocatedResource* e) {return e == ptr; });
@@ -36,6 +36,4 @@ namespace engine {
 	template engine::Camera* mem::malloc<engine::Camera>(size_t count);
 	template engine::RigidBody* mem::malloc<engine::RigidBody>(size_t count);
 	template engine::PlayerController* mem::malloc<engine::PlayerController>(size_t count);
-
-
 }

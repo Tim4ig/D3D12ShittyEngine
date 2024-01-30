@@ -1,4 +1,4 @@
- 
+
 #include "RigidBody.hpp"
 
 #include "libs/OBJFileLoader2.hpp"
@@ -21,7 +21,7 @@ namespace engine {
 
 		for (UINT i = 0; i < count; ++i) {
 			engine::Vertex* pVertex = nullptr;
-			UINT			nCount = 0;
+			UINT            nCount = 0;
 			CreateVertexData(data.meshes[i], &pVertex, &nCount);
 			Init(pVertex, nCount);
 			delete[] pVertex;
@@ -35,7 +35,7 @@ namespace engine {
 	{
 
 		if (m_bWasInit) return;
-		
+
 
 		HRESULT hr = S_OK;
 
@@ -144,7 +144,7 @@ namespace engine {
 			int a = e.first.Reset();
 			a = 0;
 		}
-		
+
 	}
 
 	void CreateVertexData(loader::Mesh& m, engine::Vertex** pData, UINT* nVertexCount) {
@@ -157,25 +157,25 @@ namespace engine {
 
 		for (UINT i = 0; i < (*nVertexCount); ++i) {
 
-			int ax[] = {m.pIndex[i].points[0].x - 1,m.pIndex[i].points[0].z - 1};
-			int ay[] = {m.pIndex[i].points[1].x - 1,m.pIndex[i].points[1].z - 1};
-			int az[] = {m.pIndex[i].points[2].x - 1,m.pIndex[i].points[2].z - 1};
+			int ax[] = { m.pIndex[i].points[0].x - 1,m.pIndex[i].points[0].z - 1 };
+			int ay[] = { m.pIndex[i].points[1].x - 1,m.pIndex[i].points[1].z - 1 };
+			int az[] = { m.pIndex[i].points[2].x - 1,m.pIndex[i].points[2].z - 1 };
 
 #define rbVLoaderHelper(ss) { \
-			(*pData)[pos].x = m.pPoints[ss[0]].x;\
-			(*pData)[pos].y = m.pPoints[ss[0]].y;\
-			(*pData)[pos].z = m.pPoints[ss[0]].z;\
-			(*pData)[pos].nx = m.pNormals[ss[1]].x;\
-			(*pData)[pos].ny = m.pNormals[ss[1]].y;\
-			(*pData)[pos].nz = m.pNormals[ss[1]].z;\
-			pos++; }
+   (*pData)[pos].x = m.pPoints[ss[0]].x;\
+   (*pData)[pos].y = m.pPoints[ss[0]].y;\
+   (*pData)[pos].z = m.pPoints[ss[0]].z;\
+   (*pData)[pos].nx = m.pNormals[ss[1]].x;\
+   (*pData)[pos].ny = m.pNormals[ss[1]].y;\
+   (*pData)[pos].nz = m.pNormals[ss[1]].z;\
+   pos++; }
 
 			rbVLoaderHelper(ax);
 			rbVLoaderHelper(ay);
 			rbVLoaderHelper(az);
 
 		}
-			(*nVertexCount) *= 3;
-			return;
+		(*nVertexCount) *= 3;
+		return;
 	}
 }

@@ -4,7 +4,6 @@
 #include <vector>
 
 namespace engine::mem {
-
 	struct AllocatedResource {
 	public:
 		virtual ~AllocatedResource() = default;
@@ -20,5 +19,4 @@ namespace engine::mem {
 	T* malloc(size_t count = 1);
 	void free(AllocatedResource* ptr);
 	void freeall();
-
 }

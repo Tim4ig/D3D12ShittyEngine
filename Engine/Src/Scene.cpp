@@ -2,10 +2,9 @@
 #include "Scene.hpp"
 
 namespace engine {
-
 	Scene* g_pTargetScene = nullptr;
 
-	Scene* GetActiveScene()
+	Scene* GetActiveScene() 
 	{
 		return g_pTargetScene;
 	}
@@ -90,5 +89,4 @@ namespace engine {
 		}
 		if (GetActiveScene() == this) SetNullActiveScene();
 	}
-
 }
