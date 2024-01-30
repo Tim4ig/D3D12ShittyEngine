@@ -107,9 +107,13 @@ namespace engine {
 
 	}
 
-	void RigidBody::SetAngle(glm::vec3 angle) {
+	void RigidBody::SetRotationRad(glm::vec3 angle) {
 		m_ModelAngles = angle;
 		m_NeedUpdate = 1;
+	}
+
+	void RigidBody::SetRotationDeg(glm::vec3 angle) {
+		this->SetRotationRad(glm::radians(angle));
 	}
 
 	void RigidBody::SetPos(glm::vec3 pos) {

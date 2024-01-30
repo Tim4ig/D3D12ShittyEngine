@@ -153,109 +153,6 @@ namespace engine {
 		}
 	}
 
-	void Renderer::m_ResizeSceneHeap(engine::Scene* pScene) noexcept(false)
-	{
-		HRESULT hr = S_OK;
-
-		//Delete old heap
-		pScene->m_ConstantHeap.Reset();
-
-		this->m_RecreateRootSignature();
-
-		//Setup and create a new heap
-		{
-			D3D12_HEAP_PROPERTIES heapProps = {};
-			heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
-			heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-			heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-			heapProps.CreationNodeMask = 1;
-			heapProps.VisibleNodeMask = 1;
-
-			D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
-			heapDesc.NumDescriptors = static_cast<UINT>(pScene->GetObjects().size() + 1);
-			heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-			heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-			hr = (m_Device->CreateDescriptorHeap(&heapDesc,
-				IID_PPV_ARGS(&pScene->m_ConstantHeap))) throw_if_err;
-		}
-
-		//Create base cbo buffer
-		if (!pScene->m_RCBOBuffer.Get()) {
-			D3D12_HEAP_PROPERTIES heapProps = {};
-			heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
-			heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-			heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-			heapProps.CreationNodeMask = 1;
-			heapProps.VisibleNodeMask = 1;
-
-			D3D12_RESOURCE_DESC cbResourceDesc = {};
-			cbResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-			cbResourceDesc.Alignment = 0;
-			cbResourceDesc.Width = (sizeof(engine::SceneShaderData) + 255) & ~255;
-			cbResourceDesc.Height = 1;
-			cbResourceDesc.DepthOrArraySize = 1;
-			cbResourceDesc.MipLevels = 1;
-			cbResourceDesc.Format = DXGI_FORMAT_UNKNOWN;
-			cbResourceDesc.SampleDesc.Count = 1;
-			cbResourceDesc.SampleDesc.Quality = 0;
-			cbResourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-			cbResourceDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-
-			hr = (m_Device->CreateCommittedResource(
-				&heapProps, D3D12_HEAP_FLAG_NONE, &cbResourceDesc,
-				D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&pScene->m_RCBOBuffer)));
-
-			pScene->m_LocalShaderData.projection	= perps;
-			pScene->m_LocalShaderData.view			= glm::mat4x4(1.f);
-			pScene->m_LocalShaderData.pos			= glm::vec4(0);
-		}
-
-		//Create base cbo buffer view
-		{
-			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-			cbvDesc.BufferLocation = pScene->m_RCBOBuffer->GetGPUVirtualAddress();
-			cbvDesc.SizeInBytes =
-				(sizeof(engine::SceneShaderData) + 255) & ~255;
-
-			D3D12_CPU_DESCRIPTOR_HANDLE
-				cbvHandle(pScene->m_ConstantHeap->GetCPUDescriptorHandleForHeapStart());
-			cbvHandle.ptr = cbvHandle.ptr + static_cast<SIZE_T>(m_Device->GetDescriptorHandleIncrementSize(
-				D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * 0);
-
-			m_Device->CreateConstantBufferView(&cbvDesc, cbvHandle);
-
-			D3D12_GPU_DESCRIPTOR_HANDLE tHandle = (pScene->m_ConstantHeap->GetGPUDescriptorHandleForHeapStart());
-			tHandle.ptr += static_cast<SIZE_T>(m_Device->GetDescriptorHandleIncrementSize(
-				D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * 0);
-			pScene->m_RCBOHandle = tHandle;
-		}
-
-		//Create obje cbo buffer view`s
-		int count = static_cast<int>(pScene->m_Obj.size() + 1);
-		for (int u = 1; u < count; u++) {
-			RigidBody* pTemp = (RigidBody*)pScene->m_Obj.at(u - 1);
-
-			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-			cbvDesc.BufferLocation = pTemp->m_CBOBuffer->GetGPUVirtualAddress();
-			cbvDesc.SizeInBytes =
-				(sizeof(engine::BodyShaderData) + 255) & ~255;
-
-			D3D12_CPU_DESCRIPTOR_HANDLE
-				cbvHandle(pScene->m_ConstantHeap->GetCPUDescriptorHandleForHeapStart());
-			cbvHandle.ptr += static_cast<SIZE_T>(m_Device->GetDescriptorHandleIncrementSize(
-				D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) *
-				u);
-
-			m_Device->CreateConstantBufferView(&cbvDesc, cbvHandle);
-
-			D3D12_GPU_DESCRIPTOR_HANDLE tHandle = (pScene->m_ConstantHeap->GetGPUDescriptorHandleForHeapStart());
-			tHandle.ptr += static_cast<SIZE_T>(m_Device->GetDescriptorHandleIncrementSize(
-				D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) *
-				u);
-			pTemp->m_Handle = tHandle;
-		}
-	}
-
 	void Renderer::m_RecreateRootSignature() noexcept(false)
 	{
 		HRESULT hr = S_OK;
@@ -541,6 +438,67 @@ namespace engine {
 		}
 	}
 
+	void Renderer::m_Sync() noexcept(false)
+	{
+		HRESULT hr = S_OK;
+		const UINT64 fence = m_FenceValue;
+		hr = m_Queue->Signal(m_Fence.Get(), fence) throw_if_err;
+		m_FenceValue++;
+
+		if (m_Fence->GetCompletedValue() < fence)
+		{
+			hr = m_Fence->SetEventOnCompletion(fence, m_FenceEvent) throw_if_err;
+			WaitForSingleObject(m_FenceEvent, INFINITE);
+		}
+
+		m_nRTVIndex = m_SwapChain->GetCurrentBackBufferIndex();
+	}
+
+	void Renderer::Resize() noexcept(false)
+	{
+		HRESULT hr = S_OK;
+		//Get new client metrics
+		{
+			RECT clientRect;
+			GetClientRect(m_hTargetWindow, &clientRect);
+
+			if (clientRect.right - clientRect.left < 10 || clientRect.bottom - clientRect.top < 10) return;
+
+			zmem(m_ViewPort);
+			m_ViewPort.MaxDepth = 1.f;
+			m_ViewPort.Width = static_cast<FLOAT>(clientRect.right - clientRect.left);
+			m_ViewPort.Height = static_cast<FLOAT>(clientRect.bottom - clientRect.top);
+
+			zmem(m_ScissorRect);
+			m_ScissorRect.right = static_cast<LONG>(m_ViewPort.Width);
+			m_ScissorRect.bottom = static_cast<LONG>(m_ViewPort.Height);
+
+
+		}
+		//Release old buffers
+		{
+			m_RTBs.clear();
+			m_DSB.Reset();
+			m_RTVHeap.Reset();
+			m_DSVHeap.Reset();
+		}
+		//Resize swapChainBuffers
+		hr = m_SwapChain->ResizeBuffers(
+			m_nBufferCount,
+			static_cast<UINT>(m_ViewPort.Width),
+			static_cast<UINT>(m_ViewPort.Height),
+			DXGI_FORMAT_R8G8B8A8_UNORM,
+			NULL
+		) throw_if_err;
+		//Create new buffers
+		m_InitSwapChainBuffers();
+		m_Sync();
+		if (GetActiveScene()) {
+			GetActiveScene()->m_LocalShaderData.projection = perps;
+			GetActiveScene()->m_NeedConstantUpdate = 1;
+		}
+	}
+
 	void Renderer::m_InitSwapChainBuffers() noexcept(false)
 	{
 		HRESULT hr = S_OK;
@@ -619,64 +577,106 @@ namespace engine {
 		}
 	}
 
-	void Renderer::m_Sync() noexcept(false)
+	void Renderer::m_ResizeSceneHeap(engine::Scene* pScene) noexcept(false)
 	{
 		HRESULT hr = S_OK;
-		const UINT64 fence = m_FenceValue;
-		hr = m_Queue->Signal(m_Fence.Get(), fence) throw_if_err;
-		m_FenceValue++;
 
-		if (m_Fence->GetCompletedValue() < fence)
+		//Delete old heap
+		pScene->m_ConstantHeap.Reset();
+
+		this->m_RecreateRootSignature();
+
+		//Setup and create a new heap
 		{
-			hr = m_Fence->SetEventOnCompletion(fence, m_FenceEvent) throw_if_err;
-			WaitForSingleObject(m_FenceEvent, INFINITE);
+			D3D12_HEAP_PROPERTIES heapProps = {};
+			heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
+			heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+			heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+			heapProps.CreationNodeMask = 1;
+			heapProps.VisibleNodeMask = 1;
+
+			D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
+			heapDesc.NumDescriptors = static_cast<UINT>(pScene->GetObjects().size() + 1);
+			heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+			heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+			hr = (m_Device->CreateDescriptorHeap(&heapDesc,
+				IID_PPV_ARGS(&pScene->m_ConstantHeap))) throw_if_err;
 		}
 
-		m_nRTVIndex = m_SwapChain->GetCurrentBackBufferIndex();
-	}
+		//Create base cbo buffer
+		if (!pScene->m_RCBOBuffer.Get()) {
+			D3D12_HEAP_PROPERTIES heapProps = {};
+			heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
+			heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+			heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+			heapProps.CreationNodeMask = 1;
+			heapProps.VisibleNodeMask = 1;
 
-	void Renderer::Resize() noexcept(false)
-	{
-		HRESULT hr = S_OK;
-		//Get new client metrics
+			D3D12_RESOURCE_DESC cbResourceDesc = {};
+			cbResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+			cbResourceDesc.Alignment = 0;
+			cbResourceDesc.Width = (sizeof(engine::SceneShaderData) + 255) & ~255;
+			cbResourceDesc.Height = 1;
+			cbResourceDesc.DepthOrArraySize = 1;
+			cbResourceDesc.MipLevels = 1;
+			cbResourceDesc.Format = DXGI_FORMAT_UNKNOWN;
+			cbResourceDesc.SampleDesc.Count = 1;
+			cbResourceDesc.SampleDesc.Quality = 0;
+			cbResourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+			cbResourceDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+			hr = (m_Device->CreateCommittedResource(
+				&heapProps, D3D12_HEAP_FLAG_NONE, &cbResourceDesc,
+				D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&pScene->m_RCBOBuffer)));
+
+			pScene->m_LocalShaderData.projection = perps;
+			pScene->m_LocalShaderData.view = glm::mat4x4(1.f);
+			pScene->m_LocalShaderData.pos = glm::vec4(0);
+		}
+
+		//Create base cbo buffer view
 		{
-			RECT clientRect;
-			GetClientRect(m_hTargetWindow, &clientRect);
+			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+			cbvDesc.BufferLocation = pScene->m_RCBOBuffer->GetGPUVirtualAddress();
+			cbvDesc.SizeInBytes =
+				(sizeof(engine::SceneShaderData) + 255) & ~255;
 
-			if (clientRect.right - clientRect.left < 10 || clientRect.bottom - clientRect.top < 10) return;
+			D3D12_CPU_DESCRIPTOR_HANDLE
+				cbvHandle(pScene->m_ConstantHeap->GetCPUDescriptorHandleForHeapStart());
+			cbvHandle.ptr = cbvHandle.ptr + static_cast<SIZE_T>(m_Device->GetDescriptorHandleIncrementSize(
+				D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * 0);
 
-			zmem(m_ViewPort);
-			m_ViewPort.MaxDepth = 1.f;
-			m_ViewPort.Width = static_cast<FLOAT>(clientRect.right - clientRect.left);
-			m_ViewPort.Height = static_cast<FLOAT>(clientRect.bottom - clientRect.top);
+			m_Device->CreateConstantBufferView(&cbvDesc, cbvHandle);
 
-			zmem(m_ScissorRect);
-			m_ScissorRect.right = static_cast<LONG>(m_ViewPort.Width);
-			m_ScissorRect.bottom = static_cast<LONG>(m_ViewPort.Height);
-
-			
+			D3D12_GPU_DESCRIPTOR_HANDLE tHandle = (pScene->m_ConstantHeap->GetGPUDescriptorHandleForHeapStart());
+			tHandle.ptr += static_cast<SIZE_T>(m_Device->GetDescriptorHandleIncrementSize(
+				D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * 0);
+			pScene->m_RCBOHandle = tHandle;
 		}
-		//Release old buffers
-		{	
-			m_RTBs.clear();
-			m_DSB.Reset();
-			m_RTVHeap.Reset();
-			m_DSVHeap.Reset();
-		}
-		//Resize swapChainBuffers
-		hr = m_SwapChain->ResizeBuffers(
-			m_nBufferCount,
-			static_cast<UINT>(m_ViewPort.Width ),
-			static_cast<UINT>(m_ViewPort.Height) ,
-			DXGI_FORMAT_R8G8B8A8_UNORM,
-			NULL
-		) throw_if_err;
-		//Create new buffers
-		m_InitSwapChainBuffers();
-		m_Sync();
-		if (GetActiveScene()) {
-			GetActiveScene()->m_LocalShaderData.projection = perps;
-			GetActiveScene()->m_NeedConstantUpdate = 1;
+
+		//Create obje cbo buffer view`s
+		int count = static_cast<int>(pScene->m_Obj.size() + 1);
+		for (int u = 1; u < count; u++) {
+			RigidBody* pTemp = (RigidBody*)pScene->m_Obj.at(u - 1);
+
+			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+			cbvDesc.BufferLocation = pTemp->m_CBOBuffer->GetGPUVirtualAddress();
+			cbvDesc.SizeInBytes =
+				(sizeof(engine::BodyShaderData) + 255) & ~255;
+
+			D3D12_CPU_DESCRIPTOR_HANDLE
+				cbvHandle(pScene->m_ConstantHeap->GetCPUDescriptorHandleForHeapStart());
+			cbvHandle.ptr += static_cast<SIZE_T>(m_Device->GetDescriptorHandleIncrementSize(
+				D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) *
+				u);
+
+			m_Device->CreateConstantBufferView(&cbvDesc, cbvHandle);
+
+			D3D12_GPU_DESCRIPTOR_HANDLE tHandle = (pScene->m_ConstantHeap->GetGPUDescriptorHandleForHeapStart());
+			tHandle.ptr += static_cast<SIZE_T>(m_Device->GetDescriptorHandleIncrementSize(
+				D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) *
+				u);
+			pTemp->m_Handle = tHandle;
 		}
 	}
 
@@ -706,6 +706,17 @@ namespace engine {
 				update(e->m_CBOBuffer.Get(), &e->m_LocalShaderData, sizeof(engine::BodyShaderData));
 				e->m_NeedUpdate = 0;
 			}
+		}
+
+		if (pScene->GetCamera()->m_bNeedUpdate) {
+
+			pScene->m_LocalShaderData.view = glm::lookAtLH(
+				pScene->GetCamera()->m_Pos,
+				pScene->GetCamera()->m_Pos - pScene->GetCamera()->m_Target,
+				glm::vec3(0, 1, 0)
+			);
+
+			pScene->GetCamera()->m_bNeedUpdate = false;
 		}
 
 		if (pScene->m_NeedConstantUpdate) {

@@ -25,27 +25,44 @@ namespace engine {
 		m_ClearColor = color;
 	}
 
-	void Scene::CreateObjectFromFile(std::string name, PCWSTR pcwStr)
+	void Scene::SetCamera(Camera& camera)
 	{
-		if (GetObjectN(name) != &m_MistakeBody) return;
-		m_Obj.push_back(new RigidBody);
-		int index = static_cast<int>(m_Obj.size() - 1);
-		m_Obj[index]->m_Name = name;
-		m_Obj[index]->InitFromFile(pcwStr);
+		m_Camera = camera;
 	}
 
-	void Scene::CreateObject(std::string name, engine::Vertex* pRawData, int nVertexCount)
+	Camera* Scene::GetCamera()
 	{
-		if (GetObjectN(name) != &m_MistakeBody) return;
-		m_Obj.push_back(new RigidBody);
-		int index = static_cast<int>(m_Obj.size() - 1);
-		m_Obj[index]->m_Name = name;
-		m_Obj[index]->Init(pRawData, nVertexCount);
+		return &m_Camera;
+	}
+
+	RigidBody* Scene::AddObject(std::string name) {
+		if (GetObjectN(name) != &m_MistakeBody) return nullptr;
+		auto pObj = new RigidBody;
+		m_Obj.push_back(pObj);
+		return pObj;
+	}
+
+	RigidBody* Scene::CreateObjectFromFile(std::string name, PCWSTR pcwStr)
+	{
+		auto pObj = this->AddObject(name);
+		if (!pObj) return &m_MistakeBody;
+		pObj->InitFromFile(pcwStr);
+		return pObj;
+	}
+
+	RigidBody* Scene::CreateObject(std::string name, engine::Vertex* pRawData, int nVertexCount)
+	{
+		auto pObj = this->AddObject(name);
+		if (!pObj) return &m_MistakeBody;
+		pObj->Init(pRawData, nVertexCount);
+		return pObj;
 	}
 
 	void Scene::RemoveObject(std::string name)
 	{
-		m_Obj.erase(std::remove_if(m_Obj.begin(), m_Obj.end(), [&](RigidBody* e) {return e->GetName() == name; }));
+		auto iter = std::find_if(m_Obj.begin(), m_Obj.end(), [&](RigidBody* e) {return e->GetName() == name; });
+		m_Obj.erase(iter);
+		delete* iter;
 	}
 
 	RigidBody* Scene::GetObjectN(std::string name)

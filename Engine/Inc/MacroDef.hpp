@@ -7,6 +7,8 @@
 #include <wrl/client.h>
 #include <string>
 
+#include "Allocator.hpp"
+
 #include <glm/glm.hpp>
 #include <glm/matrix.hpp>
 #include <glm/gtc/matrix_transform.hpp>

@@ -15,7 +15,7 @@ namespace engine {
 		glm::mat4x4 model;
 	};
 
-	class RigidBody {
+	class RigidBody : public mem::AllocatedResource {
 
 	public:
 
@@ -23,7 +23,8 @@ namespace engine {
 		void Init(Vertex* pData, UINT countOfVertex);
 		void SetEffect(int nEffect);
 		
-		void SetAngle(glm::vec3 angle);
+		void SetRotationRad(glm::vec3 angle);
+		void SetRotationDeg(glm::vec3 angle);
 		void SetPos(glm::vec3 pos);
 
 		std::string GetName();

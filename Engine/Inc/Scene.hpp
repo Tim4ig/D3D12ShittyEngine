@@ -5,6 +5,7 @@
 
 #include "MacroDef.hpp"
 #include "RigidBody.hpp"
+#include "Camera.hpp"
 
 namespace engine {
 	
@@ -14,7 +15,7 @@ namespace engine {
 		glm::vec4	pos;
 	};
 
-	class Scene {
+	class Scene : public mem::AllocatedResource {
 
 	public:
 
@@ -22,10 +23,13 @@ namespace engine {
 
 		void SetAsActive();
 
-		void CreateObjectFromFile(std::string name, PCWSTR pcwStr);
-		void CreateObject(std::string name, engine::Vertex* pRawData, int nVertexCount);
+		RigidBody* CreateObjectFromFile(std::string name, PCWSTR pcwStr);
+		RigidBody* CreateObject(std::string name, engine::Vertex* pRawData, int nVertexCount);
 		void RemoveObject(std::string name);
 		RigidBody* GetObjectN(std::string name);
+
+		void SetCamera(Camera& camera);
+		Camera* GetCamera();
 
 		void SetClearColor(int color);
 
@@ -34,6 +38,10 @@ namespace engine {
 		~Scene();
 
 	private:
+
+		RigidBody*						AddObject(std::string name);
+
+		Camera							m_Camera;
 
 		SceneShaderData					m_LocalShaderData = {};
 

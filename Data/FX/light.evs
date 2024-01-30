@@ -15,7 +15,7 @@ struct VertexOut
 cbuffer cb1 : register(b0)
 {
     float4x4 cbview;
-    float4x4 cbworld;
+    float4x4 cbprojection;
     float4 cbpos;
 }
 
@@ -29,7 +29,7 @@ VertexOut main(VertexIn _in)
     VertexOut o;
     o.fragPos = mul(cbmodel, float4(_in.pos, 1));
    
-    o.pos = mul(mul(cbview, cbworld), o.fragPos);
+    o.pos = mul(mul(cbview, cbprojection), o.fragPos);
     o.pos2 = cbpos;
     
     float3x3 ModelNormal = (float3x3) cbmodel;
