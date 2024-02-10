@@ -15,7 +15,7 @@ namespace engine {
 		glm::mat4x4 model;
 	};
 
-	class RigidBody : public mem::AllocatedResource {
+	class RigidBody {
 
 	public:
 

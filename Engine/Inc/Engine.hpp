@@ -21,6 +21,8 @@
 #include "RigidBody.hpp"
 #include "Scene.hpp"
 #include "TimeManager.hpp"
+#include "InputController.hpp"
+//#include "Memory.hpp"
 
 namespace engine {
 	int UserMain();

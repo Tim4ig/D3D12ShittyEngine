@@ -1,6 +1,8 @@
 
 #include "Scene.hpp"
 
+#include "Libs/SWindow.hpp"
+
 namespace engine {
 	Scene* g_pTargetScene = nullptr;
 
@@ -27,6 +29,7 @@ namespace engine {
 	void Scene::SetCamera(Camera& camera)
 	{
 		m_Camera = camera;
+		m_NeedConstantUpdate = true;
 	}
 
 	Camera* Scene::GetCamera()
@@ -37,6 +40,7 @@ namespace engine {
 	RigidBody* Scene::AddObject(std::string name) {
 		if (GetObjectN(name) != &m_MistakeBody) return nullptr;
 		auto pObj = new RigidBody;
+		pObj->m_Name = name;
 		m_Obj.push_back(pObj);
 		return pObj;
 	}
@@ -67,7 +71,10 @@ namespace engine {
 	RigidBody* Scene::GetObjectN(std::string name)
 	{
 		auto it = std::find_if(m_Obj.begin(), m_Obj.end(),
-			[&](RigidBody* obj) { return obj->GetName() == name; });
+			[&](RigidBody* obj) 
+			{
+				return (obj->GetName() == name);
+			});
 
 		return ((it != m_Obj.end()) ? *it._Ptr : &m_MistakeBody);
 	}
@@ -80,6 +87,7 @@ namespace engine {
 	Scene::Scene()
 	{
 		m_MistakeBody.m_bWasInit = 1;
+		m_MistakeBody.m_Name = "ERROR_MISTAKE";
 	}
 
 	Scene::~Scene()

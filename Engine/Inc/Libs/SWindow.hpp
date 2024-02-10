@@ -14,7 +14,6 @@
 
 #include <thread>
 
-
 namespace SW {
 
 	namespace Modes {
@@ -26,29 +25,30 @@ namespace SW {
 
 	class SWindow {
 	public:
-//---------------------------------------------------------------------------------------
-		static SWindow*	GetSWindowInstance();
+		//---------------------------------------------------------------------------------------
+		static SWindow* GetSWindowInstance();
 		static void		ReleaseSWindowInstance();
-//---------------------------------------------------------------------------------------
+		//---------------------------------------------------------------------------------------
 		void		OpenAsync(PCWSTR cwszWindowTitle, int nCmdShow = SW_SHOWDEFAULT);
 		void		Show(int nCmdShow = SW_SHOWDEFAULT);
-//---------------------------------------------------------------------------------------	
+		//---------------------------------------------------------------------------------------	
 		void		SetTitle(PCWSTR cwszWindowTitle);
 		void		SetMode(Modes::Mode eMode);
-//---------------------------------------------------------------------------------------
-		HWND		GetHWND() const ;
+		//---------------------------------------------------------------------------------------
+		HWND		GetHWND() const;
 		POINT		GetClientSize();
-		//PCWSTR		GetTitle();
+		PCWSTR		GetTitle();
 		bool		IsActive() const;
 		bool		IsOpen() const;
-		bool		[[nodiscard]]IsResize();
+		bool [[nodiscard]] IsResize();
+		bool* GetKeyArray();
 		Modes::Mode GetMode() const;
-//---------------------------------------------------------------------------------------
+		//---------------------------------------------------------------------------------------
 		~SWindow();
 	private:
 		SWindow() = default;
 		static LRESULT __stdcall m_WndProc(HWND hWnd, UINT uMsg, WPARAM wP, LPARAM lP);
-//---------------------------------------------------------------------------------------
+		//---------------------------------------------------------------------------------------
 		std::thread	m_WindowThread;
 		bool		m_bIsOpen = false;
 		HWND		m_hWnd = NULL;
@@ -56,7 +56,8 @@ namespace SW {
 		LONG_PTR	m_unWndStyle = NULL;
 		Modes::Mode m_eMode = Modes::Windowed;
 		bool		m_bIsResize = false;
-//---------------------------------------------------------------------------------------
+		bool		m_pKeys[256] = {};
+		//---------------------------------------------------------------------------------------
 	};
 
 }

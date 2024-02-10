@@ -10,9 +10,11 @@
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
 
-#define perps glm::perspectiveFovLH<float>(45.f, m_ViewPort.Width, m_ViewPort.Height, 0.1f, 1000.f)
+#define perps glm::perspectiveFovLH<float>(45.f, m_ViewPort.Width, m_ViewPort.Height, 0.01f, 1000.f)
 
 namespace engine {
+
+	const bool g_bRequireRTX = false;
 
 	Renderer* g_pRendererInstance = nullptr;
 	std::pair<ID3DBlob*, ID3DBlob*> g_LoadShaders(LPCWSTR pcwFileName);
@@ -280,7 +282,7 @@ namespace engine {
 					if (SUCCEEDED(tempHR)) {
 						D3D12_FEATURE_DATA_D3D12_OPTIONS5 options5 = {};
 						pTempDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &options5, sizeof(options5));
-						if (options5.RaytracingTier != D3D12_RAYTRACING_TIER_NOT_SUPPORTED) {
+						if (options5.RaytracingTier != D3D12_RAYTRACING_TIER_NOT_SUPPORTED || !g_bRequireRTX) {
 							pTempDevice->Release();
 							pTempAdapter = adapter;
 							adapter->AddRef();
@@ -710,13 +712,16 @@ namespace engine {
 
 		if (pScene->GetCamera()->m_bNeedUpdate) {
 
-			pScene->m_LocalShaderData.view = glm::lookAtLH(
+			pScene->m_LocalShaderData.view = glm::lookAt(
 				pScene->GetCamera()->m_Pos,
-				pScene->GetCamera()->m_Pos - pScene->GetCamera()->m_Target,
+				pScene->GetCamera()->m_Pos+ pScene->GetCamera()->m_Target,
 				glm::vec3(0, 1, 0)
 			);
 
+			pScene->m_LocalShaderData.pos = glm::vec4(pScene->GetCamera()->m_Pos, 1);
+
 			pScene->GetCamera()->m_bNeedUpdate = false;
+
 		}
 
 		if (pScene->m_NeedConstantUpdate) {

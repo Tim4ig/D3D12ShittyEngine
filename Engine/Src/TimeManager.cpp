@@ -14,8 +14,8 @@ namespace engine {
 		return static_cast<uint32_t>(std::chrono::duration_cast<std::chrono::milliseconds>(m_DeltaT).count());
 	}
 
-	float TimeManager::GetFPS() const
+	double TimeManager::GetFPS() const
 	{
-		return 1000.f / static_cast<float>(GetDTms());
+		return 1000.0 / static_cast<double>(GetDTms());
 	}
 }

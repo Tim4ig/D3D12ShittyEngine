@@ -14,7 +14,7 @@ namespace engine {
 		glm::vec4    pos;
 	};
 
-	class Scene : public mem::AllocatedResource {
+	class Scene {
 
 	public:
 

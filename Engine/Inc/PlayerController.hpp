@@ -1,12 +1,16 @@
 
 #pragma once
 
-#include <Camera.hpp>
+#include "Camera.hpp"
+#include "TimeManager.hpp"
 
 namespace engine {
 	class PlayerController : public Camera {
-
 	public:
-		~PlayerController() { MessageBox(0, L"Destructor call", L"", 0); }
+
+		void Tick();
+
+	private:
+		TimeManager m_Timemanager;
 	};
 }
